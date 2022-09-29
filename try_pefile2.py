@@ -20,8 +20,11 @@ def get_portable_executable_info(file_path: str) -> dict:
     decoded_dict: dict = {}  # To avoid "Local variable 'pe' might be referenced before assignment" alert.
     try:
         pe = pefile.PE(file_path)  # type - class 'pefile.PE'
-    except Exception as error:
-        logging.error(error)
+    except FileNotFoundError as error:
+        logging.error(f"Check the provided file path: {error}. An empty dict is returned.")
+        return decoded_dict
+    except pefile.PEFormatError as error:
+        logging.error(f"The provided file is not Portable Executable: {error}. An empty dict is returned.")
         return decoded_dict
 
     file_info: list = pe.FileInfo  # In my case: List of lists. len==1.
