@@ -31,17 +31,14 @@ def get_portable_executable_info(file_path: str) -> dict:
     # The nested list contains 2 elements of class 'pefile.Structure': VarFileInfo and StringFileInfo
 
     for structure in file_info[0]:
-        logging.debug(f"This structure type is {type(structure)}")
-
-        if hasattr(structure, 'StringTable'):
-            logging.debug("This entry CONTAINS attribute StringTable.")
-            string_table: list = structure.StringTable  # In my case:len==1.
-            # Contains 1 element of class 'pefile.Structure'
-            encoded_dict: dict = string_table[0].entries
-            decoded_dict = dict(
-                (key.decode('utf-8'), value.decode('utf-8')) for key, value in encoded_dict.items())
-        else:
+        if not hasattr(structure, 'StringTable'):
             logging.debug("This entry doesn't contain attribute StringTable.")
+            continue
+
+        string_table: list = structure.StringTable  # In my case:len==1. Contains 1 element of class 'pefile.Structure'
+        logging.debug("This entry CONTAINS attribute StringTable.")
+        encoded_dict: dict = string_table[0].entries
+        decoded_dict = dict((key.decode(), value.decode()) for key, value in encoded_dict.items())
 
     # Add modification time from FILE_HEADER
     time_date_stamp = pe.FILE_HEADER.TimeDateStamp
