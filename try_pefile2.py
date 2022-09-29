@@ -5,9 +5,6 @@ from datetime import datetime
 import logging
 
 
-logging.basicConfig(level=logging.DEBUG)
-
-
 def get_portable_executable_info(file_path: str) -> dict:
     """
     Return a dictionary with ProductVersion and other params of portable executable.
@@ -15,7 +12,7 @@ def get_portable_executable_info(file_path: str) -> dict:
     The Portable Executable (PE) format is a file format for executables, object code, DLLs and others used in 32-bit
     and 64-bit versions of Windows operating systems. For non PE files this error is raised:
     pefile.PEFormatError: 'DOS Header magic not found.'
-    We can use it to provide the info about the tested ZEP build to the pytest report.
+    We can use it to provide the info about the tested build to the pytest report.
     """
     decoded_dict: dict = {}  # To avoid "Local variable 'pe' might be referenced before assignment" alert.
     try:
@@ -45,3 +42,7 @@ def get_portable_executable_info(file_path: str) -> dict:
     modification_time = str(datetime.fromtimestamp(time_date_stamp))
     decoded_dict["Modification_time"] = modification_time
     return decoded_dict
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
