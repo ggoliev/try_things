@@ -1,9 +1,9 @@
 import winreg
-import subprocess
 import logging
 from re import search
 
-logging.basicConfig(level=logging.DEBUG)
+FORMAT = "%(funcName)s %(levelname)s: %(message)s"
+logging.basicConfig(format = FORMAT, level=logging.DEBUG)
 
 
 def registry_names_extract(registry_path: str) -> tuple:
@@ -25,12 +25,12 @@ def registry_names_extract(registry_path: str) -> tuple:
     return hkey_folder, path_to_sub_key
 
 
-def registry_open_key(registry_path: str):
+def registry_open_key(registry_path: str) -> winreg.HKEYType | bool:
     """
     Opens provided key by path for winreg operations.
 
     :param registry_path:
-    :return: a key, open for winreg operations.
+    :return: a PyHKEY key, open for winreg operations or False if key cannot be open
     """
 
     # extract registry folder name from the full path: HKEY_CURRENT_USER etc.
@@ -43,11 +43,11 @@ def registry_open_key(registry_path: str):
 
     # Need to use the getattr, because hkey is string, so I can't get access to winreg."HKEY_CURRENT_USER."
     hkey_constant: int = getattr(winreg, hkey_folder)  # = winreg.HKEY_CURRENT_USER (for example)
-    logging.debug(f"{hkey_constant=}")
+    logging.debug(f"{hkey_constant=} for {hkey_folder}")
 
-    opened_key = 0  # To avoid "Local variable might be referenced before assignment" alert.
+    opened_key = False  # To avoid "Local variable might be referenced before assignment" alert.
     try:
-        opened_key = winreg.OpenKeyEx(hkey_constant, path_to_sub_key)
+        opened_key = winreg.OpenKeyEx(hkey_constant, path_to_sub_key, access=winreg.KEY_WRITE)
         logging.debug(f"Successfully opened: {registry_path}")
     except FileNotFoundError as error:
         logging.error(f"Check the provided registry path: {error}")
@@ -134,18 +134,42 @@ def registry_create_value(registry_path: str, value_type: str, value_name: str, 
 
 
 def registry_delete_key(registry_path: str):
-    registry_open_key(registry_path)
-    pass
+    key_is_ready = registry_open_key(registry_path)
+    if not key_is_ready:
+        logging.error("Key is not open")
+        return False
+    else:
+        logging.debug("Ready to work with the key")
 
 
-def registry_delete_value():
-    pass
+def registry_delete_value(registry_path: str, value_name: str) -> bool:
+    """
+    Removes a named value from a registry key.
+
+    :param registry_path: str
+    :param value_name: str
+    :return: True if the value was removed, False otherwise
+    """
+    key_is_ready = registry_open_key(registry_path)
+    if not key_is_ready:
+        logging.error("Key is not open")
+        return False
+    else:
+        try:
+            logging.debug(f"Ready to work with the key {registry_path}")
+            winreg.DeleteValue(key_is_ready, value_name)
+            logging.debug("Key is deleted")
+            return True
+        except FileNotFoundError as error:
+            logging.error(f"Check the provided value_name: {error}")
+            return False
 
 
-my_path1 = r"Computer\HKEY_CURRENT_USER\Software\Zscaler"
+my_path1 = r"Computer\HKEY_CURRENT_USER\Software\Zscaler\GG"
 my_path2 = r"Computer\HKEY_LOCAL_MACHINE\Software\Zscaler Inc."
 
-print(registry_open_key(my_path1))
+registry_delete_value(my_path1, "GG_name")
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
