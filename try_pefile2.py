@@ -1,10 +1,11 @@
 """https://stackoverflow.com/a/58241294/6235116"""
+import logging
+from contextlib import suppress
+from datetime import datetime
+from typing import Generator
 
 import pefile  # type: ignore
-from datetime import datetime
-import logging
 from more_itertools import first
-from contextlib import suppress
 
 
 def get_portable_executable_info(file_path: str) -> dict:
@@ -31,29 +32,36 @@ def get_portable_executable_info(file_path: str) -> dict:
     # The [StringFileInfo] has attr StringTable that return list len==1. Contains 1 element of class 'pefile.Structure':
     # [<Structure: [StringTable] 0x40A7A4 0x0 Length: 0x35E 0x40A7A6 0x2 ValueLength: 0x0 0x40A7A8 0x4 Type: 0x1>]
 
-    # Option 1. LBYL
-    # for structure in file_info[0]:
-    #     if not hasattr(structure, 'StringTable'):
-    #         continue
-    #     list_with_string_table_structure: list = structure.StringTable
-    #     encoded_dict: dict = list_with_string_table_structure[0].entries
-    #     decoded_dict = {key.decode(): value.decode() for (key, value) in encoded_dict.items()}
-    #     break
+    # Option 1. LBYL. By Alex: the best option across all three in terms of readability.
+    for structure in file_info[0]:
+        if not hasattr(structure, 'StringTable'):
+            continue
+        list_with_string_table_structure: list = structure.StringTable
+        encoded_dict: dict = list_with_string_table_structure[0].entries
+        decoded_dict = {key.decode(): value.decode() for (key, value) in encoded_dict.items()}
+        break
 
-    # Option 2 EAFP
-    # for structure in file_info[0]:
-    #     with suppress(AttributeError):
-    #         list_with_string_table_structure: list = structure.StringTable
-    #         encoded_dict = list_with_string_table_structure[0].entries
-    #         decoded_dict = {key.decode(): value.decode() for key, value in encoded_dict.items()}
-    #         break
+    # Option 2. EAFP
+    for structure in file_info[0]:
+        with suppress(AttributeError):
+            list_with_string_table_structure: list = structure.StringTable
+            encoded_dict = list_with_string_table_structure[0].entries
+            decoded_dict = {key.decode(): value.decode() for key, value in encoded_dict.items()}
+            break
 
-    # Option 3
+    # Option 3. Suppress
     with suppress(ValueError):
         string_file_info_structure = first(structure for structure in file_info[0] if hasattr(structure, 'StringTable'))
         list_with_string_table_structure = string_file_info_structure.StringTable
         encoded_dict = list_with_string_table_structure[0].entries
         decoded_dict = {key.decode(): value.decode() for (key, value) in encoded_dict.items()}
+
+    # Option 4. The walrus operator
+    string_tables: Generator = (
+        string_table for structure in file_info[0] if (string_table := getattr(structure, 'StringTable', None)))
+    if string_table := first(string_tables, None):  # type(string_table): list
+        encoded_dict = string_table[0].entries
+        decoded_dict = {key.decode(): value.decode() for key, value in encoded_dict.items()}
 
     # Add modification time from FILE_HEADER
     time_date_stamp = pe.FILE_HEADER.TimeDateStamp
