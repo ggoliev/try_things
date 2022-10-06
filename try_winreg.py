@@ -8,7 +8,7 @@ def registry_open_key(registry_path: str) -> winreg.HKEYType | None:
     Opens specified in registry_path key for winreg operations.
 
     :param registry_path: str. Any format of the path to the registry, like Computer\HKEY_CURRENT_USER\Software\Folder
-    :return: a PyHKEY key, open for winreg operations or False if key cannot be open
+    :return: a PyHKEY key, open for winreg operations or None if key cannot be open
     """
 
     # extract registry folder name from the full path: HKEY_CURRENT_USER etc.
@@ -25,8 +25,9 @@ def registry_open_key(registry_path: str) -> winreg.HKEYType | None:
 
     try:
         opened_key = winreg.OpenKeyEx(hkey_constant, path_to_sub_key, access=winreg.KEY_WRITE)
-        logging.debug(f"Successfully opened: {registry_path}")
+        logging.info(f"Successfully opened: {registry_path}")
         return opened_key  # <-- we can return it immediately
+
     except FileNotFoundError as error:
         logging.error(f"Check the provided registry path: {error}")
     except WindowsError as error:  # The same as PermissionError
@@ -45,24 +46,21 @@ def registry_create_value(registry_path: str, value_type: str, value_name: str, 
     :return: True if the value was created, False otherwise.
     """
 
-    # Checking that value_type parameter has the right format.
-    value_type_int = 0  # To avoid "Local variable might be referenced before assignment" alert.
-    try:
-        value_type_int: int = getattr(winreg, value_type)
-        logging.debug("Value_type successfully checked")
-    except AttributeError as error:
-        logging.error(f"Check the provided value_type parameter: {error}")
-
     key_is_ready = registry_open_key(registry_path)
     if not key_is_ready:
-        logging.error("Key is not open")
+        logging.error("Key is not open. Stop the function.")
         return False
-    else:
-        logging.debug(f"Ready to work with the key {registry_path}")
-        # Creating a new value_name and value_data
+    logging.debug(f"Ready to work with the key {registry_path}.")
+
+    value_type_int = getattr(winreg, value_type, 0)
+    try:
         winreg.SetValueEx(key_is_ready, value_name, 0, value_type_int, value_data)
-        logging.debug(f"{value_name} was created")
+        logging.info(f"{value_name} with type {value_type} and {value_data} was created.")
         return True
+    except TypeError as error:
+        logging.error(f"Most likely you need to check the value_type parameter: {error}")
+        # Zero provided as __type: int -> "Objects of type 'str' can not be used as binary registry values"
+        return False
 
 
 def registry_delete_value(registry_path: str, value_name: str) -> bool:
@@ -78,15 +76,15 @@ def registry_delete_value(registry_path: str, value_name: str) -> bool:
     if not key_is_ready:
         logging.error("Key is not open")
         return False
-    else:
-        logging.debug(f"Ready to work with the key {registry_path}")
-        try:
-            winreg.DeleteValue(key_is_ready, value_name)
-            logging.debug(f"Key {value_name} deleted")
-            return True
-        except FileNotFoundError as error:
-            logging.error(f"Check the provided value_name parameter: {error}")
-            return False
+    logging.debug(f"Ready to work with the key {registry_path}")
+
+    try:
+        winreg.DeleteValue(key_is_ready, value_name)
+        logging.info(f"Key {value_name} deleted")
+        return True
+    except FileNotFoundError as error:
+        logging.error(f"Check the provided value_name parameter: {error}")
+        return False
 
 
 def registry_create_key():
