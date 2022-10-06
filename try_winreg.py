@@ -3,7 +3,7 @@ import logging
 from re import search
 
 
-def registry_open_key(registry_path: str) -> winreg.HKEYType | False:
+def registry_open_key(registry_path: str) -> winreg.HKEYType | None:
     """
     Opens specified in registry_path key for winreg operations.
 
@@ -23,16 +23,15 @@ def registry_open_key(registry_path: str) -> winreg.HKEYType | False:
     hkey_constant: int = getattr(winreg, hkey_folder)  # = winreg.HKEY_CURRENT_USER (for example)
     logging.debug(f"{hkey_constant=} for {hkey_folder}")
 
-    opened_key = False  # To avoid "Local variable might be referenced before assignment" alert.
     try:
         opened_key = winreg.OpenKeyEx(hkey_constant, path_to_sub_key, access=winreg.KEY_WRITE)
         logging.debug(f"Successfully opened: {registry_path}")
+        return opened_key  # <-- we can return it immediately
     except FileNotFoundError as error:
         logging.error(f"Check the provided registry path: {error}")
     except WindowsError as error:  # The same as PermissionError
         logging.error(f"Run the script as admin: {error}")
-
-    return opened_key
+    # here is end of function; if function ends with nothing, it implicitly returns `None`
 
 
 def registry_create_value(registry_path: str, value_type: str, value_name: str, value_data: str, ) -> bool:
