@@ -105,12 +105,6 @@ def registry_delete_key():
     pass
 
 
-my_path1 = r"Computer\HKEY_CURRENT_USER\Software\Zscaler\GG"
-my_path2 = r"Computer\HKEY_LOCAL_MACHINE\Software\Zscaler Inc."
-
-registry_delete_value(my_path1, "GG_name")
-
-
 if __name__ == '__main__':
     FORMAT = "%(funcName)s %(levelname)s: %(message)s"
     logging.basicConfig(format=FORMAT, level=logging.DEBUG)
