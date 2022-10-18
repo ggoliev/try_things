@@ -1,7 +1,7 @@
 import winreg
 import logging
 from re import search
-from try_admin import is_admin
+from try_admin import is_running_as_admin
 
 
 def registry_open_key(registry_path: str) -> winreg.HKEYType | None:
@@ -66,7 +66,7 @@ def registry_create_value(registry_path: str, value_type: str, value_name: str, 
         # Zero provided as __type: int -> "Objects of type 'str' can not be used as binary registry values"
         return False
     except PermissionError as error:
-        if not is_admin():  # This flow is for HKEY_CURRENT_USER only. Another folders will fail on open_key.
+        if not is_running_as_admin():  # This flow is for HKEY_CURRENT_USER only. Another folders will fail on open_key.
             logging.error(f"{error}. Try to run as admin. But in case of Anti-tampering you will fail again.")
             return False
         logging.error(f"The script was run as admin, but still '{error}'. So the Anti-tampering is working!")
@@ -96,7 +96,7 @@ def registry_delete_value(registry_path: str, value_name: str) -> bool:
         logging.error(f"Check the provided value_name parameter: {error}")
         return False
     except PermissionError as error:
-        if not is_admin():  # This flow is for HKEY_CURRENT_USER only. Another folders will fail on open_key.
+        if not is_running_as_admin():  # This flow is for HKEY_CURRENT_USER only. Another folders will fail on open_key.
             logging.error(f"{error}. Try to run as admin. But in case of Anti-tampering you will fail again.")
             return False
         logging.error(f"The script was run as admin, but still '{error}'. So the Anti-tampering is working!")

@@ -3,7 +3,7 @@ import ctypes
 import logging
 
 
-def is_admin() -> bool:
+def is_running_as_admin() -> bool:
     """
     Checks if the script was run by admin or regular user
 
