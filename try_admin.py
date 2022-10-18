@@ -3,7 +3,7 @@ import ctypes
 import logging
 
 
-def is_admin() -> bool | None:
+def is_admin() -> bool:
     """
     Checks if the script was run by admin or regular user
 
@@ -11,24 +11,22 @@ def is_admin() -> bool | None:
     :rtype:
     """
 
+    class UnknownOs(Exception):
+        pass
     os_name: str = os.name
     logging.debug(f"OS name is {os_name}")
     if os_name == "nt":
         run_as_admin: int = ctypes.windll.shell32.IsUserAnAdmin()
         # returns 1 if admin, 0 if regular user
         logging.debug(f"{run_as_admin=}")
-        if run_as_admin:
-            logging.info("User is admin")
-            return True
-        logging.info("User is NOT admin")
+        return bool(run_as_admin)
     elif os_name == "posix":
         uid: int = os.getuid()
         # returns 0 if admin, 501 (or another number) if regular user
         logging.debug(f"{uid=}")
-        if not uid:  # the same for: if uid == 0
-            logging.info("User is admin")
-            return True
-        logging.info("User is NOT admin")
+        return uid == 0
+    else:
+        raise UnknownOs(f"Unrecognised {os_name=}")
 
 
 if __name__ == '__main__':
